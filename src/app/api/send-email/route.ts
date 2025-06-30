@@ -8,11 +8,11 @@ if (!process.env.SENDGRID_API_KEY) {
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export async function POST(req: Request) {
-  // 環境変数が設定されているか確認
   const toEmail = process.env.SENDGRID_TO_EMAIL;
   const fromEmail = process.env.SENDGRID_FROM_EMAIL;
+  const autoReplyTemplateId = process.env.SENDGRID_AUTOREPLY_TEMPLATE_ID;
 
-  if (!toEmail || !fromEmail) {
+  if (!toEmail || !fromEmail || !autoReplyTemplateId) {
     console.error("Email environment variables are not set.");
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
@@ -27,8 +27,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields.' }, { status: 400 });
     }
 
-    // 送信するメールの内容を作成
-    const msg = {
+    // A. 管理者への通知メール
+    const adminMail = {
       to: toEmail, // あなたが通知を受け取るメールアドレス
       from: fromEmail, // SendGridで認証した送信元メールアドレス
       subject: `【お問い合わせ】${name}様より`,
@@ -40,13 +40,23 @@ export async function POST(req: Request) {
       `,
     };
 
-    // SendGridを使ってメールを送信
-    await sgMail.send(msg);
+    // B. ユーザーへの自動返信メール
+    const userMail = {
+      to: email,
+      from: fromEmail,
+      templateId: autoReplyTemplateId,
+      dynamicTemplateData: {
+        name,
+        email,
+        message,
+      },
+    };
 
+    // A、Bを同時に送信
+    await sgMail.send([adminMail, userMail]);
     return NextResponse.json({ success: true, message: 'Message sent successfully.' });
-
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error in send-email API:', error);
     return NextResponse.json({ error: 'Error sending message.' }, { status: 500 });
   }
 }

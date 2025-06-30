@@ -33,7 +33,7 @@ export default function ContactPage() {
 
       setStatus('success');
       setMessage('お問い合わせありがとうございます。メッセージは正常に送信されました。');
-      (event.target as HTMLFormElement).reset(); // フォームをリセット
+      (event.target as HTMLFormElement).reset();
 
     } catch (error) {
       console.error('Fetch error:', error);
